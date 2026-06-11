@@ -1,0 +1,14 @@
+# Build outputs
+*.exe
+*.obj
+*.o
+*.out
+
+# MSVC debug/build files
+*.pdb
+*.ilk
+*.lib
+*.exp
+
+# Local runtime data
+tasks.txt
