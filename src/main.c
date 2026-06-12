@@ -191,6 +191,58 @@ static int save_tasks(void) {
     return 1;
 }
 
+static int due_date_sort_value(const char *date) {
+    int month;
+    int day;
+
+    if (!is_valid_due_date(date)) {
+        return 9999;
+    }
+
+    month = (date[0] - '0') * 10 + (date[1] - '0');
+    day = (date[3] - '0') * 10 + (date[4] - '0');
+
+    return month * 100 + day;
+}
+
+static int compare_task_indices(int left, int right) {
+    int left_date;
+    int right_date;
+
+    if (tasks[left].priority != tasks[right].priority) {
+        return tasks[left].priority - tasks[right].priority;
+    }
+
+    left_date = due_date_sort_value(tasks[left].due_date);
+    right_date = due_date_sort_value(tasks[right].due_date);
+
+    if (left_date != right_date) {
+        return left_date - right_date;
+    }
+
+    return left - right;
+}
+
+static void build_sorted_indices(int sorted_indices[]) {
+    int i;
+    int j;
+    int temp;
+
+    for (i = 0; i < task_count; i++) {
+        sorted_indices[i] = i;
+    }
+
+    for (i = 0; i < task_count - 1; i++) {
+        for (j = i + 1; j < task_count; j++) {
+            if (compare_task_indices(sorted_indices[i], sorted_indices[j]) > 0) {
+                temp = sorted_indices[i];
+                sorted_indices[i] = sorted_indices[j];
+                sorted_indices[j] = temp;
+            }
+        }
+    }
+}
+
 static void add_task(void) {
     char title[MAX_TITLE];
 
@@ -222,25 +274,32 @@ static void add_task(void) {
     printf("Task added.\n");
 }
 
-static void list_tasks(void) {
+static int list_tasks(int sorted_indices[]) {
     int i;
+    int task_index;
 
     if (task_count == 0) {
         printf("No tasks yet.\n");
-        return;
+        return 0;
     }
+
+    build_sorted_indices(sorted_indices);
 
     printf("\nTasks:\n");
     for (i = 0; i < task_count; i++) {
-        printf("%d. [%c] [%s] [%s] %s\n", i + 1, tasks[i].done ? 'x' : ' ', priority_text(tasks[i].priority), tasks[i].due_date, tasks[i].title);
+        task_index = sorted_indices[i];
+        printf("%d. [%c] [%s] [%s] %s\n", i + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
     }
+
+    return 1;
 }
 
 static void update_due_date(void) {
     int number;
+    int task_index;
+    int sorted_indices[MAX_TASKS];
 
-    list_tasks();
-    if (task_count == 0) {
+    if (!list_tasks(sorted_indices)) {
         return;
     }
 
@@ -250,7 +309,8 @@ static void update_due_date(void) {
         return;
     }
 
-    read_due_date(tasks[number - 1].due_date);
+    task_index = sorted_indices[number - 1];
+    read_due_date(tasks[task_index].due_date);
     save_tasks();
     printf("Due date updated.\n");
 }
@@ -258,9 +318,10 @@ static void update_due_date(void) {
 static void delete_task(void) {
     int number;
     int i;
+    int task_index;
+    int sorted_indices[MAX_TASKS];
 
-    list_tasks();
-    if (task_count == 0) {
+    if (!list_tasks(sorted_indices)) {
         return;
     }
 
@@ -270,7 +331,8 @@ static void delete_task(void) {
         return;
     }
 
-    for (i = number - 1; i < task_count - 1; i++) {
+    task_index = sorted_indices[number - 1];
+    for (i = task_index; i < task_count - 1; i++) {
         tasks[i] = tasks[i + 1];
     }
     task_count--;
@@ -281,9 +343,10 @@ static void delete_task(void) {
 
 static void mark_done(void) {
     int number;
+    int task_index;
+    int sorted_indices[MAX_TASKS];
 
-    list_tasks();
-    if (task_count == 0) {
+    if (!list_tasks(sorted_indices)) {
         return;
     }
 
@@ -293,9 +356,15 @@ static void mark_done(void) {
         return;
     }
 
-    tasks[number - 1].done = 1;
+    task_index = sorted_indices[number - 1];
+    tasks[task_index].done = 1;
     save_tasks();
     printf("Task marked as done.\n");
+}
+
+static void view_tasks(void) {
+    int sorted_indices[MAX_TASKS];
+    list_tasks(sorted_indices);
 }
 
 static void show_menu(void) {
@@ -326,7 +395,7 @@ int main(void) {
                 wait_for_enter();
                 break;
             case 2:
-                list_tasks();
+                view_tasks();
                 wait_for_enter();
                 break;
             case 3:
