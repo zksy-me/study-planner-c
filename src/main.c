@@ -9,6 +9,7 @@
 typedef struct {
     char title[MAX_TITLE];
     int done;
+    int priority;
 } Task;
 
 static Task tasks[MAX_TASKS];
@@ -43,9 +44,36 @@ static int read_number(const char *prompt) {
     return value;
 }
 
+static const char *priority_text(int priority) {
+    switch (priority) {
+        case 1:
+            return "H";
+        case 2:
+            return "M";
+        case 3:
+            return "L";
+        default:
+            return "M";
+    }
+}
+
+static int read_priority(void) {
+    int priority;
+
+    printf("Priority options: 1=High, 2=Medium, 3=Low\n");
+    priority = read_number("Enter priority: ");
+
+    if (priority < 1 || priority > 3) {
+        printf("Invalid priority. Medium will be used.\n");
+        return 2;
+    }
+
+    return priority;
+}
+
 static void load_tasks(void) {
     FILE *file = fopen(DATA_FILE, "r");
-    char line[MAX_TITLE + 8];
+    char line[MAX_TITLE + 16];
 
     task_count = 0;
 
@@ -54,17 +82,31 @@ static void load_tasks(void) {
     }
 
     while (fgets(line, sizeof(line), file) != NULL && task_count < MAX_TASKS) {
-        char *separator;
+        char *first_separator;
+        char *second_separator;
         remove_newline(line);
 
-        separator = strchr(line, '|');
-        if (separator == NULL) {
+        first_separator = strchr(line, '|');
+        if (first_separator == NULL) {
             continue;
         }
 
-        *separator = '\0';
+        *first_separator = '\0';
         tasks[task_count].done = atoi(line);
-        strncpy(tasks[task_count].title, separator + 1, MAX_TITLE - 1);
+
+        second_separator = strchr(first_separator + 1, '|');
+        if (second_separator == NULL) {
+            tasks[task_count].priority = 2;
+            strncpy(tasks[task_count].title, first_separator + 1, MAX_TITLE - 1);
+        } else {
+            *second_separator = '\0';
+            tasks[task_count].priority = atoi(first_separator + 1);
+            if (tasks[task_count].priority < 1 || tasks[task_count].priority > 3) {
+                tasks[task_count].priority = 2;
+            }
+            strncpy(tasks[task_count].title, second_separator + 1, MAX_TITLE - 1);
+        }
+
         tasks[task_count].title[MAX_TITLE - 1] = '\0';
         task_count++;
     }
@@ -82,7 +124,7 @@ static int save_tasks(void) {
     }
 
     for (i = 0; i < task_count; i++) {
-        fprintf(file, "%d|%s\n", tasks[i].done, tasks[i].title);
+        fprintf(file, "%d|%d|%s\n", tasks[i].done, tasks[i].priority, tasks[i].title);
     }
 
     fclose(file);
@@ -112,6 +154,7 @@ static void add_task(void) {
     strncpy(tasks[task_count].title, title, MAX_TITLE - 1);
     tasks[task_count].title[MAX_TITLE - 1] = '\0';
     tasks[task_count].done = 0;
+    tasks[task_count].priority = read_priority();
     task_count++;
 
     save_tasks();
@@ -128,7 +171,7 @@ static void list_tasks(void) {
 
     printf("\nTasks:\n");
     for (i = 0; i < task_count; i++) {
-        printf("%d. [%c] %s\n", i + 1, tasks[i].done ? 'x' : ' ', tasks[i].title);
+        printf("%d. [%c] [%s] %s\n", i + 1, tasks[i].done ? 'x' : ' ', priority_text(tasks[i].priority), tasks[i].title);
     }
 }
 
