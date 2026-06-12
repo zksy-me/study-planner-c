@@ -288,7 +288,7 @@ static int list_tasks(int sorted_indices[]) {
     printf("\nTasks:\n");
     for (i = 0; i < task_count; i++) {
         task_index = sorted_indices[i];
-        printf("%d. [%c] [%s] [%s] %s\n", i + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
+        printf("%d. [%c] [%s] [%s] %s\n", task_index + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
     }
 
     return 1;
@@ -296,7 +296,6 @@ static int list_tasks(int sorted_indices[]) {
 
 static void update_due_date(void) {
     int number;
-    int task_index;
     int sorted_indices[MAX_TASKS];
 
     if (!list_tasks(sorted_indices)) {
@@ -309,8 +308,7 @@ static void update_due_date(void) {
         return;
     }
 
-    task_index = sorted_indices[number - 1];
-    read_due_date(tasks[task_index].due_date);
+    read_due_date(tasks[number - 1].due_date);
     save_tasks();
     printf("Due date updated.\n");
 }
@@ -318,7 +316,6 @@ static void update_due_date(void) {
 static void delete_task(void) {
     int number;
     int i;
-    int task_index;
     int sorted_indices[MAX_TASKS];
 
     if (!list_tasks(sorted_indices)) {
@@ -331,8 +328,7 @@ static void delete_task(void) {
         return;
     }
 
-    task_index = sorted_indices[number - 1];
-    for (i = task_index; i < task_count - 1; i++) {
+    for (i = number - 1; i < task_count - 1; i++) {
         tasks[i] = tasks[i + 1];
     }
     task_count--;
@@ -343,7 +339,6 @@ static void delete_task(void) {
 
 static void mark_done(void) {
     int number;
-    int task_index;
     int sorted_indices[MAX_TASKS];
 
     if (!list_tasks(sorted_indices)) {
@@ -356,8 +351,7 @@ static void mark_done(void) {
         return;
     }
 
-    task_index = sorted_indices[number - 1];
-    tasks[task_index].done = 1;
+    tasks[number - 1].done = 1;
     save_tasks();
     printf("Task marked as done.\n");
 }
@@ -372,7 +366,6 @@ static void search_tasks(void) {
     int i;
     int task_index;
     int found = 0;
-    int result_number = 1;
     int sorted_indices[MAX_TASKS];
 
     if (task_count == 0) {
@@ -398,9 +391,8 @@ static void search_tasks(void) {
     for (i = 0; i < task_count; i++) {
         task_index = sorted_indices[i];
         if (strstr(tasks[task_index].title, keyword) != NULL) {
-            printf("%d. [%c] [%s] [%s] %s\n", result_number, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
+            printf("%d. [%c] [%s] [%s] %s\n", task_index + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
             found = 1;
-            result_number++;
         }
     }
 
