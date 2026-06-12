@@ -49,6 +49,28 @@ static int read_number(const char *prompt) {
     return value;
 }
 
+static int confirm_action(const char *prompt) {
+    char answer[16];
+
+    printf("%s", prompt);
+    if (fgets(answer, sizeof(answer), stdin) == NULL) {
+        return 0;
+    }
+
+    remove_newline(answer);
+
+    if (strcmp(answer, "y") == 0 || strcmp(answer, "yes") == 0) {
+        return 1;
+    }
+
+    if (strcmp(answer, "n") == 0 || strcmp(answer, "no") == 0) {
+        return 0;
+    }
+
+    printf("输入无效，操作已取消。\n");
+    return 0;
+}
+
 static int is_valid_due_date(const char *date) {
     int month;
     int day;
@@ -300,6 +322,11 @@ static int list_tasks(int sorted_indices[]) {
 static void delete_task_at(int task_index) {
     int i;
 
+    if (!confirm_action("确认删除这个任务吗？输入 y/yes 确认，n/no 取消: ")) {
+        printf("删除已取消。\n");
+        return;
+    }
+
     for (i = task_index; i < task_count - 1; i++) {
         tasks[i] = tasks[i + 1];
     }
@@ -307,6 +334,22 @@ static void delete_task_at(int task_index) {
 
     save_tasks();
     printf("任务已删除。\n");
+}
+
+static void clear_all_tasks(void) {
+    if (task_count == 0) {
+        printf("还没有任务。\n");
+        return;
+    }
+
+    if (!confirm_action("确认清空全部任务吗？输入 y/yes 确认，n/no 取消: ")) {
+        printf("清空已取消。\n");
+        return;
+    }
+
+    task_count = 0;
+    save_tasks();
+    printf("全部任务已清空。\n");
 }
 
 static void print_task(int task_index) {
@@ -476,8 +519,9 @@ static void show_menu(void) {
     printf("1. 添加任务\n");
     printf("2. 查看所有任务\n");
     printf("3. 搜索任务\n");
-    printf("4. 保存任务\n");
-    printf("5. 退出\n");
+    printf("4. 清空全部任务\n");
+    printf("5. 保存任务\n");
+    printf("6. 退出\n");
 }
 
 int main(void) {
@@ -510,12 +554,16 @@ int main(void) {
                 wait_for_enter();
                 break;
             case 4:
+                clear_all_tasks();
+                wait_for_enter();
+                break;
+            case 5:
                 if (save_tasks()) {
                     printf("任务已保存到 %s。\n", DATA_FILE);
                 }
                 wait_for_enter();
                 break;
-            case 5:
+            case 6:
                 save_tasks();
                 printf("再见！\n");
                 return 0;
