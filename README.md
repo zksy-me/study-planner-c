@@ -2,7 +2,7 @@
 
 这是一个简单的 C 语言命令行学习计划工具，适合用来练习 C 语言基础、结构体、数组、菜单交互和文件读写。
 
-当前版本：`v1.5`
+当前版本：`v1.6`
 
 ## 项目简介
 
@@ -40,6 +40,8 @@ MM-DD
 
 `v1.5` 修复了搜索和其他功能之间的编号联动问题。现在查看任务和搜索任务时显示的都是任务真实编号，删除、标记完成、修改截止日期等操作也统一使用真实编号。
 
+`v1.6` 优化了任务操作流程。查看全部任务或搜索任务后，可以直接输入任务真实编号进入任务操作菜单，不需要回到主菜单再选择删除、修改或标记完成。
+
 ## 功能列表
 
 - 添加学习任务
@@ -50,9 +52,12 @@ MM-DD
 - 查看任务时自动按优先级和截止日期排序
 - 按关键词搜索任务
 - 搜索结果显示任务真实编号
+- 查看或搜索后直接管理指定任务
+- 标记完成或取消完成
+- 修改任务名称
+- 修改任务优先级
 - 修改任务截止日期并保存
 - 删除指定任务
-- 标记任务为已完成
 - 保存任务到本地文件
 - 启动程序时自动读取已保存任务
 - 对错误菜单编号和错误任务编号做基本处理
@@ -166,12 +171,9 @@ study_planner.exe
 ==== Study Planner C ====
 1. Add task
 2. View all tasks
-3. Delete task
-4. Mark task as done
-5. Update due date
-6. Search tasks
-7. Save tasks
-8. Exit
+3. Search tasks
+4. Save tasks
+5. Exit
 Choose an option:
 ```
 
@@ -198,15 +200,21 @@ Tasks:
 
 注意：任务前面的数字是真实编号，不是临时排序编号。删除、标记完成、修改截止日期时，都要输入这个真实编号。
 
-修改截止日期：
+查看或搜索后，可以直接输入真实编号进入任务操作菜单：
 
 ```text
-Choose an option: 5
-Tasks:
+Enter task number to manage, or 0 to return: 3
+
+Task:
 3. [ ] [H] [06-20] Review C arrays
-Enter task number to update due date: 3
-Enter due date (MM-DD): 06-25
-Due date updated.
+
+1. Mark done / cancel done
+2. Edit title
+3. Edit priority
+4. Edit due date
+5. Delete task
+6. Back
+Choose an option:
 ```
 
 搜索任务：
@@ -217,9 +225,11 @@ Enter search keyword: C
 
 Search results:
 3. [ ] [H] [06-20] Review C arrays
+
+Enter task number to manage, or 0 to return: 3
 ```
 
-再次查看：
+修改截止日期后再次查看：
 
 ```text
 Choose an option: 2
@@ -230,7 +240,7 @@ Tasks:
 退出：
 
 ```text
-Choose an option: 8
+Choose an option: 5
 Goodbye!
 ```
 
@@ -238,7 +248,7 @@ Goodbye!
 
 ## 测试建议
 
-重新编译后，可以按下面流程测试 `v1.5`：
+重新编译后，可以按下面流程测试 `v1.6`：
 
 ```text
 1. 添加 Low 任务，优先级选择 3，截止日期输入 01-01
@@ -250,17 +260,20 @@ Goodbye!
    2. [H] [12-01]
    4. [M] [03-01]
    1. [L] [01-01]
-6. 搜索关键词 High，确认搜索结果显示真实编号 3 和 2
-7. 输入真实编号 3 标记完成，确认改的是编号 3 的任务
-8. 输入真实编号 2 修改截止日期，确认改的是编号 2 的任务
-9. 输入不存在的编号，例如 99，确认提示 Invalid task number.
-10. 删除测试任务时也使用真实编号
+6. 在查看结果后直接输入真实编号 3，进入任务操作菜单
+7. 选择 1，确认任务可以标记完成或取消完成
+8. 选择 2，修改任务名称
+9. 选择 3，修改任务优先级
+10. 选择 4，修改任务截止日期
+11. 搜索关键词 High，确认搜索结果显示真实编号
+12. 在搜索结果里输入真实编号，确认也能进入同一个任务操作菜单
+13. 在搜索结果里输入一个不在搜索结果中的真实编号，确认提示 Task number is not in this list.
+14. 输入不存在的编号，例如 99，确认提示 Invalid task number.
+15. 删除测试任务
 ```
 
 ## 后续可改进方向
 
-- 支持编辑任务标题
-- 支持把已完成任务改回未完成
 - 把菜单文字改成中文
 - 改进不同 Windows 终端下的中文编码显示
 - 使用 CSV 或 JSON 等更结构化的方式保存任务

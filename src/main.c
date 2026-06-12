@@ -294,41 +294,10 @@ static int list_tasks(int sorted_indices[]) {
     return 1;
 }
 
-static void update_due_date(void) {
-    int number;
-    int sorted_indices[MAX_TASKS];
-
-    if (!list_tasks(sorted_indices)) {
-        return;
-    }
-
-    number = read_number("Enter task number to update due date: ");
-    if (number < 1 || number > task_count) {
-        printf("Invalid task number.\n");
-        return;
-    }
-
-    read_due_date(tasks[number - 1].due_date);
-    save_tasks();
-    printf("Due date updated.\n");
-}
-
-static void delete_task(void) {
-    int number;
+static void delete_task_at(int task_index) {
     int i;
-    int sorted_indices[MAX_TASKS];
 
-    if (!list_tasks(sorted_indices)) {
-        return;
-    }
-
-    number = read_number("Enter task number to delete: ");
-    if (number < 1 || number > task_count) {
-        printf("Invalid task number.\n");
-        return;
-    }
-
-    for (i = number - 1; i < task_count - 1; i++) {
+    for (i = task_index; i < task_count - 1; i++) {
         tasks[i] = tasks[i + 1];
     }
     task_count--;
@@ -337,28 +306,119 @@ static void delete_task(void) {
     printf("Task deleted.\n");
 }
 
-static void mark_done(void) {
-    int number;
-    int sorted_indices[MAX_TASKS];
+static void print_task(int task_index) {
+    printf("%d. [%c] [%s] [%s] %s\n", task_index + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
+}
 
-    if (!list_tasks(sorted_indices)) {
+static void edit_task_title(int task_index) {
+    char title[MAX_TITLE];
+
+    printf("Enter new task title: ");
+    if (fgets(title, sizeof(title), stdin) == NULL) {
         return;
     }
 
-    number = read_number("Enter task number to mark as done: ");
+    remove_newline(title);
+
+    if (strlen(title) == 0) {
+        printf("Task title cannot be empty.\n");
+        return;
+    }
+
+    strncpy(tasks[task_index].title, title, MAX_TITLE - 1);
+    tasks[task_index].title[MAX_TITLE - 1] = '\0';
+    save_tasks();
+    printf("Task title updated.\n");
+}
+
+static void task_action_menu(int task_index) {
+    int choice;
+
+    while (task_index >= 0 && task_index < task_count) {
+        printf("\nTask:\n");
+        print_task(task_index);
+        printf("\n");
+        printf("1. Mark done / cancel done\n");
+        printf("2. Edit title\n");
+        printf("3. Edit priority\n");
+        printf("4. Edit due date\n");
+        printf("5. Delete task\n");
+        printf("6. Back\n");
+
+        choice = read_number("Choose an option: ");
+        printf("\n");
+
+        switch (choice) {
+            case 1:
+                tasks[task_index].done = !tasks[task_index].done;
+                save_tasks();
+                printf("Task status updated.\n");
+                break;
+            case 2:
+                edit_task_title(task_index);
+                break;
+            case 3:
+                tasks[task_index].priority = read_priority();
+                save_tasks();
+                printf("Task priority updated.\n");
+                break;
+            case 4:
+                read_due_date(tasks[task_index].due_date);
+                save_tasks();
+                printf("Due date updated.\n");
+                break;
+            case 5:
+                delete_task_at(task_index);
+                return;
+            case 6:
+                return;
+            default:
+                printf("Invalid option.\n");
+                break;
+        }
+    }
+}
+
+static int index_in_list(int task_index, int valid_indices[], int valid_count) {
+    int i;
+
+    for (i = 0; i < valid_count; i++) {
+        if (valid_indices[i] == task_index) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static void select_task_to_manage(int valid_indices[], int valid_count) {
+    int number;
+    int task_index;
+
+    number = read_number("Enter task number to manage, or 0 to return: ");
+    if (number == 0) {
+        return;
+    }
+
     if (number < 1 || number > task_count) {
         printf("Invalid task number.\n");
         return;
     }
 
-    tasks[number - 1].done = 1;
-    save_tasks();
-    printf("Task marked as done.\n");
+    task_index = number - 1;
+    if (valid_indices != NULL && !index_in_list(task_index, valid_indices, valid_count)) {
+        printf("Task number is not in this list.\n");
+        return;
+    }
+
+    task_action_menu(task_index);
 }
 
 static void view_tasks(void) {
     int sorted_indices[MAX_TASKS];
-    list_tasks(sorted_indices);
+    if (list_tasks(sorted_indices)) {
+        select_task_to_manage(NULL, 0);
+    }
 }
 
 static void search_tasks(void) {
@@ -367,6 +427,8 @@ static void search_tasks(void) {
     int task_index;
     int found = 0;
     int sorted_indices[MAX_TASKS];
+    int matching_indices[MAX_TASKS];
+    int matching_count = 0;
 
     if (task_count == 0) {
         printf("No tasks yet.\n");
@@ -392,25 +454,27 @@ static void search_tasks(void) {
         task_index = sorted_indices[i];
         if (strstr(tasks[task_index].title, keyword) != NULL) {
             printf("%d. [%c] [%s] [%s] %s\n", task_index + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
+            matching_indices[matching_count] = task_index;
+            matching_count++;
             found = 1;
         }
     }
 
     if (!found) {
         printf("No matching tasks found.\n");
+        return;
     }
+
+    select_task_to_manage(matching_indices, matching_count);
 }
 
 static void show_menu(void) {
     printf("\n==== Study Planner C ====\n");
     printf("1. Add task\n");
     printf("2. View all tasks\n");
-    printf("3. Delete task\n");
-    printf("4. Mark task as done\n");
-    printf("5. Update due date\n");
-    printf("6. Search tasks\n");
-    printf("7. Save tasks\n");
-    printf("8. Exit\n");
+    printf("3. Search tasks\n");
+    printf("4. Save tasks\n");
+    printf("5. Exit\n");
 }
 
 int main(void) {
@@ -434,28 +498,16 @@ int main(void) {
                 wait_for_enter();
                 break;
             case 3:
-                delete_task();
-                wait_for_enter();
-                break;
-            case 4:
-                mark_done();
-                wait_for_enter();
-                break;
-            case 5:
-                update_due_date();
-                wait_for_enter();
-                break;
-            case 6:
                 search_tasks();
                 wait_for_enter();
                 break;
-            case 7:
+            case 4:
                 if (save_tasks()) {
                     printf("Tasks saved to %s.\n", DATA_FILE);
                 }
                 wait_for_enter();
                 break;
-            case 8:
+            case 5:
                 save_tasks();
                 printf("Goodbye!\n");
                 return 0;
