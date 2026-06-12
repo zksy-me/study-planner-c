@@ -2,7 +2,7 @@
 
 这是一个简单的 C 语言命令行学习计划工具，适合用来练习 C 语言基础、结构体、数组、菜单交互和文件读写。
 
-当前版本：`v1.6`
+当前版本：`v1.7`
 
 ## 项目简介
 
@@ -42,6 +42,8 @@ MM-DD
 
 `v1.6` 优化了任务操作流程。查看全部任务或搜索任务后，可以直接输入任务真实编号进入任务操作菜单，不需要回到主菜单再选择删除、修改或标记完成。
 
+`v1.7` 做了轻量中文适配。主菜单、任务操作菜单和常用提示语改成中文，任务名称可以输入中文。任务列表中的优先级仍然使用 `H / M / L`，保存格式不变。
+
 ## 功能列表
 
 - 添加学习任务
@@ -61,6 +63,8 @@ MM-DD
 - 保存任务到本地文件
 - 启动程序时自动读取已保存任务
 - 对错误菜单编号和错误任务编号做基本处理
+- 中文菜单和中文提示语
+- 支持中文任务名称
 
 ## 项目结构
 
@@ -111,7 +115,7 @@ cd /d "D:\Program Files\codex_program\first-program"
 编译：
 
 ```bat
-cl src\main.c /Fe:study_planner.exe
+cl /utf-8 src\main.c /Fe:study_planner.exe
 ```
 
 编译成功后会生成：
@@ -132,7 +136,7 @@ call "D:\visual studio\VC\Auxiliary\Build\vcvars64.bat"
 
 ```bat
 cd /d "D:\Program Files\codex_program\first-program"
-cl src\main.c /Fe:study_planner.exe
+cl /utf-8 src\main.c /Fe:study_planner.exe
 ```
 
 ## 可选：使用 GCC 编译
@@ -168,34 +172,34 @@ study_planner.exe
 运行程序后，会看到菜单：
 
 ```text
-==== Study Planner C ====
-1. Add task
-2. View all tasks
-3. Search tasks
-4. Save tasks
-5. Exit
-Choose an option:
+==== 学习任务计划 ====
+1. 添加任务
+2. 查看所有任务
+3. 搜索任务
+4. 保存任务
+5. 退出
+请选择操作:
 ```
 
 添加任务时，会要求输入任务名、优先级和截止日期：
 
 ```text
-Choose an option: 1
-Enter task title: Review C arrays
-Priority options: 1=High, 2=Medium, 3=Low
-Enter priority: 1
-Enter due date (MM-DD): 06-20
-Task added.
+请选择操作: 1
+请输入任务名称: 复习 C 语言数组
+优先级选项：1=高, 2=中, 3=低
+请输入优先级: 1
+请输入截止日期 (MM-DD): 06-20
+任务已添加。
 ```
 
 查看任务时，会显示完成状态、优先级和截止日期。任务会自动按照优先级和截止日期排序：
 
 ```text
-Choose an option: 2
-Tasks:
-3. [ ] [H] [06-20] Review C arrays
-2. [ ] [M] [06-18] Read textbook
-1. [ ] [L] [06-15] Organize notes
+请选择操作: 2
+任务列表:
+3. [ ] [H] [06-20] 复习 C 语言数组
+2. [ ] [M] [06-18] 阅读教材
+1. [ ] [L] [06-15] 整理笔记
 ```
 
 注意：任务前面的数字是真实编号，不是临时排序编号。删除、标记完成、修改截止日期时，都要输入这个真实编号。
@@ -203,52 +207,52 @@ Tasks:
 查看或搜索后，可以直接输入真实编号进入任务操作菜单：
 
 ```text
-Enter task number to manage, or 0 to return: 3
+请输入要操作的任务编号，输入 0 返回: 3
 
-Task:
-3. [ ] [H] [06-20] Review C arrays
+任务:
+3. [ ] [H] [06-20] 复习 C 语言数组
 
-1. Mark done / cancel done
-2. Edit title
-3. Edit priority
-4. Edit due date
-5. Delete task
-6. Back
-Choose an option:
+1. 标记完成 / 取消完成
+2. 修改任务名称
+3. 修改优先级
+4. 修改截止日期
+5. 删除任务
+6. 返回
+请选择操作:
 ```
 
 搜索任务：
 
 ```text
-Choose an option: 6
-Enter search keyword: C
+请选择操作: 3
+请输入搜索关键词: C
 
-Search results:
-3. [ ] [H] [06-20] Review C arrays
+搜索结果:
+3. [ ] [H] [06-20] 复习 C 语言数组
 
-Enter task number to manage, or 0 to return: 3
+请输入要操作的任务编号，输入 0 返回: 3
 ```
 
 修改截止日期后再次查看：
 
 ```text
-Choose an option: 2
-Tasks:
-3. [ ] [H] [06-25] Review C arrays
+请选择操作: 2
+任务列表:
+3. [ ] [H] [06-25] 复习 C 语言数组
 ```
 
 退出：
 
 ```text
-Choose an option: 5
-Goodbye!
+请选择操作: 5
+再见！
 ```
 
 再次运行程序时，之前保存的任务会从 `tasks.txt` 自动读取。
 
 ## 测试建议
 
-重新编译后，可以按下面流程测试 `v1.6`：
+重新编译后，可以按下面流程测试 `v1.7`：
 
 ```text
 1. 添加 Low 任务，优先级选择 3，截止日期输入 01-01
@@ -265,15 +269,14 @@ Goodbye!
 8. 选择 2，修改任务名称
 9. 选择 3，修改任务优先级
 10. 选择 4，修改任务截止日期
-11. 搜索关键词 High，确认搜索结果显示真实编号
+11. 搜索关键词 C 或 复习，确认搜索结果显示真实编号
 12. 在搜索结果里输入真实编号，确认也能进入同一个任务操作菜单
-13. 在搜索结果里输入一个不在搜索结果中的真实编号，确认提示 Task number is not in this list.
-14. 输入不存在的编号，例如 99，确认提示 Invalid task number.
+13. 在搜索结果里输入一个不在搜索结果中的真实编号，确认提示该任务编号不在当前列表中。
+14. 输入不存在的编号，例如 99，确认提示任务编号无效。
 15. 删除测试任务
 ```
 
 ## 后续可改进方向
 
-- 把菜单文字改成中文
 - 改进不同 Windows 终端下的中文编码显示
 - 使用 CSV 或 JSON 等更结构化的方式保存任务
