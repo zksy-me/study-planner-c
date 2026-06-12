@@ -367,6 +367,48 @@ static void view_tasks(void) {
     list_tasks(sorted_indices);
 }
 
+static void search_tasks(void) {
+    char keyword[MAX_TITLE];
+    int i;
+    int task_index;
+    int found = 0;
+    int result_number = 1;
+    int sorted_indices[MAX_TASKS];
+
+    if (task_count == 0) {
+        printf("No tasks yet.\n");
+        return;
+    }
+
+    printf("Enter search keyword: ");
+    if (fgets(keyword, sizeof(keyword), stdin) == NULL) {
+        return;
+    }
+
+    remove_newline(keyword);
+
+    if (strlen(keyword) == 0) {
+        printf("Search keyword cannot be empty.\n");
+        return;
+    }
+
+    build_sorted_indices(sorted_indices);
+
+    printf("\nSearch results:\n");
+    for (i = 0; i < task_count; i++) {
+        task_index = sorted_indices[i];
+        if (strstr(tasks[task_index].title, keyword) != NULL) {
+            printf("%d. [%c] [%s] [%s] %s\n", result_number, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
+            found = 1;
+            result_number++;
+        }
+    }
+
+    if (!found) {
+        printf("No matching tasks found.\n");
+    }
+}
+
 static void show_menu(void) {
     printf("\n==== Study Planner C ====\n");
     printf("1. Add task\n");
@@ -374,8 +416,9 @@ static void show_menu(void) {
     printf("3. Delete task\n");
     printf("4. Mark task as done\n");
     printf("5. Update due date\n");
-    printf("6. Save tasks\n");
-    printf("7. Exit\n");
+    printf("6. Search tasks\n");
+    printf("7. Save tasks\n");
+    printf("8. Exit\n");
 }
 
 int main(void) {
@@ -411,12 +454,16 @@ int main(void) {
                 wait_for_enter();
                 break;
             case 6:
+                search_tasks();
+                wait_for_enter();
+                break;
+            case 7:
                 if (save_tasks()) {
                     printf("Tasks saved to %s.\n", DATA_FILE);
                 }
                 wait_for_enter();
                 break;
-            case 7:
+            case 8:
                 save_tasks();
                 printf("Goodbye!\n");
                 return 0;
