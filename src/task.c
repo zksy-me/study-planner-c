@@ -8,6 +8,7 @@ int task_count = 0;
 int is_valid_due_date(const char *date) {
     int month;
     int day;
+    int days_in_month[] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
     if (strlen(date) != 5) {
         return 0;
@@ -24,7 +25,11 @@ int is_valid_due_date(const char *date) {
     month = (date[0] - '0') * 10 + (date[1] - '0');
     day = (date[3] - '0') * 10 + (date[4] - '0');
 
-    return month >= 1 && month <= 12 && day >= 1 && day <= 31;
+    if (month < 1 || month > 12) {
+        return 0;
+    }
+
+    return day >= 1 && day <= days_in_month[month - 1];
 }
 
 const char *priority_text(int priority) {

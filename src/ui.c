@@ -3,47 +3,85 @@
 #include "storage.h"
 #include "task.h"
 
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-static void remove_newline(char *text) {
+static void flush_line(void) {
+    int ch;
+
+    while ((ch = getchar()) != '\n' && ch != EOF) {
+    }
+}
+
+static int remove_newline(char *text) {
     size_t len = strlen(text);
     if (len > 0 && text[len - 1] == '\n') {
         text[len - 1] = '\0';
+        return 1;
     }
+
+    return 0;
+}
+
+static int read_line(char *buffer, int size) {
+    if (fgets(buffer, size, stdin) == NULL) {
+        return 0;
+    }
+
+    if (!remove_newline(buffer)) {
+        flush_line();
+    }
+
+    return 1;
 }
 
 static void wait_for_enter(void) {
     char buffer[8];
     printf("\n按回车继续...");
-    fgets(buffer, sizeof(buffer), stdin);
+    read_line(buffer, sizeof(buffer));
 }
 
 static int read_number(const char *prompt) {
     char buffer[32];
-    int value;
+    char *end;
+    long value;
 
     printf("%s", prompt);
-    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+    if (!read_line(buffer, sizeof(buffer))) {
         return -1;
     }
 
-    if (sscanf(buffer, "%d", &value) != 1) {
+    errno = 0;
+    value = strtol(buffer, &end, 10);
+    if (end == buffer) {
         return -1;
     }
 
-    return value;
+    while (*end != '\0') {
+        if (!isspace((unsigned char)*end)) {
+            return -1;
+        }
+        end++;
+    }
+
+    if (errno == ERANGE || value < INT_MIN || value > INT_MAX) {
+        return -1;
+    }
+
+    return (int)value;
 }
 
 static int confirm_action(const char *prompt) {
     char answer[16];
 
     printf("%s", prompt);
-    if (fgets(answer, sizeof(answer), stdin) == NULL) {
+    if (!read_line(answer, sizeof(answer))) {
         return 0;
     }
-
-    remove_newline(answer);
 
     if (strcmp(answer, "y") == 0 || strcmp(answer, "yes") == 0) {
         return 1;
@@ -62,12 +100,10 @@ static void read_due_date(char *due_date) {
 
     while (1) {
         printf("请输入截止日期 (MM-DD): ");
-        if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        if (!read_line(buffer, sizeof(buffer))) {
             strcpy(due_date, "00-00");
             return;
         }
-
-        remove_newline(buffer);
 
         if (is_valid_due_date(buffer)) {
             strcpy(due_date, buffer);
@@ -101,11 +137,9 @@ static void add_task(void) {
     }
 
     printf("请输入任务名称: ");
-    if (fgets(title, sizeof(title), stdin) == NULL) {
+    if (!read_line(title, sizeof(title))) {
         return;
     }
-
-    remove_newline(title);
 
     if (strlen(title) == 0) {
         printf("任务名称不能为空。\n");
@@ -178,11 +212,9 @@ static void edit_task_title(int task_index) {
     char title[MAX_TITLE];
 
     printf("请输入新的任务名称: ");
-    if (fgets(title, sizeof(title), stdin) == NULL) {
+    if (!read_line(title, sizeof(title))) {
         return;
     }
-
-    remove_newline(title);
 
     if (strlen(title) == 0) {
         printf("任务名称不能为空。\n");
@@ -255,33 +287,41 @@ static int index_in_list(int task_index, int valid_indices[], int valid_count) {
     return 0;
 }
 
-static void select_task_to_manage(int valid_indices[], int valid_count) {
+static int select_task_to_manage(int valid_indices[], int valid_count) {
     int number;
     int task_index;
 
     number = read_number("请输入要操作的任务编号，输入 0 返回: ");
     if (number == 0) {
-        return;
+        return 0;
     }
 
     if (number < 1 || number > task_count) {
         printf("任务编号无效。\n");
-        return;
+        return 1;
     }
 
     task_index = number - 1;
     if (valid_indices != NULL && !index_in_list(task_index, valid_indices, valid_count)) {
         printf("该任务编号不在当前列表中。\n");
-        return;
+        return 1;
     }
 
     task_action_menu(task_index);
+    return 1;
 }
 
 static void view_tasks(void) {
     int sorted_indices[MAX_TASKS];
-    if (list_tasks(sorted_indices)) {
-        select_task_to_manage(NULL, 0);
+
+    while (1) {
+        if (!list_tasks(sorted_indices)) {
+            return;
+        }
+
+        if (!select_task_to_manage(NULL, 0)) {
+            return;
+        }
     }
 }
 
@@ -300,17 +340,18 @@ static void search_tasks(void) {
     }
 
     printf("请输入搜索关键词: ");
-    if (fgets(keyword, sizeof(keyword), stdin) == NULL) {
+    if (!read_line(keyword, sizeof(keyword))) {
         return;
     }
-
-    remove_newline(keyword);
 
     if (strlen(keyword) == 0) {
         printf("搜索关键词不能为空。\n");
         return;
     }
 
+search_again:
+    found = 0;
+    matching_count = 0;
     build_sorted_indices(sorted_indices);
 
     printf("\n搜索结果:\n");
@@ -329,7 +370,10 @@ static void search_tasks(void) {
         return;
     }
 
-    select_task_to_manage(matching_indices, matching_count);
+    if (!select_task_to_manage(matching_indices, matching_count)) {
+        return;
+    }
+    goto search_again;
 }
 
 static void show_menu(void) {
@@ -358,11 +402,9 @@ void run_app(void) {
                 break;
             case 2:
                 view_tasks();
-                wait_for_enter();
                 break;
             case 3:
                 search_tasks();
-                wait_for_enter();
                 break;
             case 4:
                 clear_all_tasks();
