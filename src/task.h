@@ -5,6 +5,13 @@
 #define MAX_TITLE 128
 #define DATE_LEN 6
 
+#define TASK_NOT_DONE 0
+#define TASK_DONE 1
+
+#define TASK_PRIORITY_HIGH 1
+#define TASK_PRIORITY_MEDIUM 2
+#define TASK_PRIORITY_LOW 3
+
 typedef struct {
     char title[MAX_TITLE];
     char due_date[DATE_LEN];

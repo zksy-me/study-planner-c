@@ -188,7 +188,7 @@ int save_tasks(void) {
     }
 
     fprintf(file, "%s\n", STORAGE_FORMAT_HEADER);
-    fprintf(file, "# fields: record_type|done|priority|due_date|title\n");
+    fprintf(file, "%s\n", STORAGE_FIELDS_HEADER);
 
     for (i = 0; i < get_task_count(); i++) {
         const Task *task = get_task(i);

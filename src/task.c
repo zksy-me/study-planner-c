@@ -27,8 +27,8 @@ int is_valid_task_index(int task_index) {
 }
 
 int normalize_priority(int priority) {
-    if (priority < 1 || priority > 3) {
-        return 2;
+    if (priority < TASK_PRIORITY_HIGH || priority > TASK_PRIORITY_LOW) {
+        return TASK_PRIORITY_MEDIUM;
     }
 
     return priority;
@@ -63,11 +63,11 @@ int is_valid_due_date(const char *date) {
 
 const char *priority_text(int priority) {
     switch (priority) {
-        case 1:
+        case TASK_PRIORITY_HIGH:
             return "H";
-        case 2:
+        case TASK_PRIORITY_MEDIUM:
             return "M";
-        case 3:
+        case TASK_PRIORITY_LOW:
             return "L";
         default:
             return "M";
@@ -81,7 +81,7 @@ int add_task(const char *title, int priority, const char *due_date) {
 
     copy_text(tasks[task_count].title, MAX_TITLE, title);
     copy_text(tasks[task_count].due_date, DATE_LEN, due_date);
-    tasks[task_count].done = 0;
+    tasks[task_count].done = TASK_NOT_DONE;
     tasks[task_count].priority = normalize_priority(priority);
     task_count++;
 
@@ -99,7 +99,7 @@ int add_loaded_task(int done, int priority, const char *due_date, const char *ti
     } else {
         copy_text(tasks[task_count].due_date, DATE_LEN, "00-00");
     }
-    tasks[task_count].done = done ? 1 : 0;
+    tasks[task_count].done = done ? TASK_DONE : TASK_NOT_DONE;
     tasks[task_count].priority = normalize_priority(priority);
     task_count++;
 
@@ -244,7 +244,7 @@ int filter_tasks_by_done(int done, int matching_indices[]) {
     build_sorted_indices(sorted_indices);
     for (i = 0; i < task_count; i++) {
         task_index = sorted_indices[i];
-        if (tasks[task_index].done == (done ? 1 : 0)) {
+        if (tasks[task_index].done == (done ? TASK_DONE : TASK_NOT_DONE)) {
             matching_indices[matching_count] = task_index;
             matching_count++;
         }
