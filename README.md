@@ -2,7 +2,7 @@
 
 一个使用 C 语言编写的命令行学习任务管理工具。
 
-当前版本：`v1.9`
+当前版本：`v2.0`
 
 ## 项目简介
 
@@ -50,6 +50,17 @@
 
 这样可以避免误删单个任务或误清空全部任务。
 
+## v2.0 代码结构重构
+
+`v2.0` 不增加新功能，只整理代码结构。原来集中在 `src/main.c` 中的代码已经拆分为多个模块：
+
+- `main.c`：程序入口
+- `task.c / task.h`：任务结构、排序、优先级和日期校验
+- `storage.c / storage.h`：任务文件保存和读取
+- `ui.c / ui.h`：菜单、输入、搜索和任务操作流程
+
+文件保存格式保持不变，仍然兼容已有的 `tasks.txt`。
+
 ## Windows 下如何编译
 
 推荐使用 Visual Studio 自带的 Microsoft C/C++ 编译器。
@@ -71,7 +82,7 @@ cd /d "D:\Program Files\codex_program\first-program"
 编译：
 
 ```bat
-cl /utf-8 src\main.c /Fe:study_planner.exe
+cl /utf-8 src\main.c src\task.c src\storage.c src\ui.c /Fe:study_planner.exe
 ```
 
 ### 方法二：在普通 CMD 中手动加载编译环境
@@ -86,7 +97,7 @@ call "D:\visual studio\VC\Auxiliary\Build\vcvars64.bat"
 
 ```bat
 cd /d "D:\Program Files\codex_program\first-program"
-cl /utf-8 src\main.c /Fe:study_planner.exe
+cl /utf-8 src\main.c src\task.c src\storage.c src\ui.c /Fe:study_planner.exe
 ```
 
 编译成功后会生成：
@@ -208,12 +219,24 @@ study-planner-c/
   README.md
   src/
     main.c
+    task.c
+    task.h
+    storage.c
+    storage.h
+    ui.c
+    ui.h
 ```
 
 文件说明：
 
 ```text
-src/main.c      主程序源代码
+src/main.c      程序入口
+src/task.c      任务结构、排序和校验相关代码
+src/task.h      任务模块头文件
+src/storage.c   任务保存和读取代码
+src/storage.h   存储模块头文件
+src/ui.c        菜单、输入和交互流程代码
+src/ui.h        UI 模块头文件
 Makefile        GCC/make 构建文件
 README.md       项目说明文档
 .gitignore      Git 忽略规则
