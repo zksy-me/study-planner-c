@@ -1,4 +1,4 @@
-#include "ui.h"
+#include "cli_ui.h"
 
 #include "storage.h"
 #include "task.h"
@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static int input_closed = 0;
 
 static void flush_line(void) {
     int ch;
@@ -28,7 +30,8 @@ static int remove_newline(char *text) {
 }
 
 static int read_line(char *buffer, int size) {
-    if (fgets(buffer, size, stdin) == NULL) {
+    if (fgets(buffer, size, stdin) == 0) {
+        input_closed = 1;
         return 0;
     }
 
@@ -128,10 +131,12 @@ static int read_priority(void) {
     return priority;
 }
 
-static void add_task(void) {
+static void add_task_from_input(void) {
     char title[MAX_TITLE];
+    char due_date[DATE_LEN];
+    int priority;
 
-    if (task_count >= MAX_TASKS) {
+    if (get_task_count() >= MAX_TASKS) {
         printf("任务列表已满。\n");
         return;
     }
@@ -146,22 +151,41 @@ static void add_task(void) {
         return;
     }
 
-    strncpy(tasks[task_count].title, title, MAX_TITLE - 1);
-    tasks[task_count].title[MAX_TITLE - 1] = '\0';
-    tasks[task_count].done = 0;
-    tasks[task_count].priority = read_priority();
-    read_due_date(tasks[task_count].due_date);
-    task_count++;
+    priority = read_priority();
+    read_due_date(due_date);
 
-    save_tasks();
+    if (!add_task(title, priority, due_date)) {
+        printf("任务添加失败。\n");
+        return;
+    }
+
+    if (!save_tasks()) {
+        printf("无法保存任务到 %s。\n", DATA_FILE);
+        return;
+    }
+
     printf("任务已添加。\n");
+}
+
+static void print_task(int task_index) {
+    const Task *task = get_task(task_index);
+
+    if (task == 0) {
+        return;
+    }
+
+    printf("%d. [%c] [%s] [%s] %s\n",
+           task_index + 1,
+           task->done ? 'x' : ' ',
+           priority_text(task->priority),
+           task->due_date,
+           task->title);
 }
 
 static int list_tasks(int sorted_indices[]) {
     int i;
-    int task_index;
 
-    if (task_count == 0) {
+    if (get_task_count() == 0) {
         printf("还没有任务。\n");
         return 0;
     }
@@ -169,9 +193,8 @@ static int list_tasks(int sorted_indices[]) {
     build_sorted_indices(sorted_indices);
 
     printf("\n任务列表:\n");
-    for (i = 0; i < task_count; i++) {
-        task_index = sorted_indices[i];
-        printf("%d. [%c] [%s] [%s] %s\n", task_index + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
+    for (i = 0; i < get_task_count(); i++) {
+        print_task(sorted_indices[i]);
     }
 
     return 1;
@@ -183,13 +206,19 @@ static void delete_task_at(int task_index) {
         return;
     }
 
-    remove_task_at(task_index);
-    save_tasks();
-    printf("任务已删除。\n");
+    if (delete_task(task_index)) {
+        if (!save_tasks()) {
+            printf("无法保存任务到 %s。\n", DATA_FILE);
+            return;
+        }
+        printf("任务已删除。\n");
+    } else {
+        printf("任务编号无效。\n");
+    }
 }
 
 static void clear_all_tasks(void) {
-    if (task_count == 0) {
+    if (get_task_count() == 0) {
         printf("还没有任务。\n");
         return;
     }
@@ -199,13 +228,13 @@ static void clear_all_tasks(void) {
         return;
     }
 
-    task_count = 0;
-    save_tasks();
-    printf("全部任务已清空。\n");
-}
+    clear_tasks();
+    if (!save_tasks()) {
+        printf("无法保存任务到 %s。\n", DATA_FILE);
+        return;
+    }
 
-static void print_task(int task_index) {
-    printf("%d. [%c] [%s] [%s] %s\n", task_index + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
+    printf("全部任务已清空。\n");
 }
 
 static void edit_task_title(int task_index) {
@@ -221,16 +250,22 @@ static void edit_task_title(int task_index) {
         return;
     }
 
-    strncpy(tasks[task_index].title, title, MAX_TITLE - 1);
-    tasks[task_index].title[MAX_TITLE - 1] = '\0';
-    save_tasks();
-    printf("任务名称已更新。\n");
+    if (update_task_title(task_index, title)) {
+        if (!save_tasks()) {
+            printf("无法保存任务到 %s。\n", DATA_FILE);
+            return;
+        }
+        printf("任务名称已更新。\n");
+    } else {
+        printf("任务编号无效。\n");
+    }
 }
 
 static void task_action_menu(int task_index) {
     int choice;
+    char due_date[DATE_LEN];
 
-    while (task_index >= 0 && task_index < task_count) {
+    while (is_valid_task_index(task_index)) {
         printf("\n任务:\n");
         print_task(task_index);
         printf("\n");
@@ -246,7 +281,7 @@ static void task_action_menu(int task_index) {
 
         switch (choice) {
             case 1:
-                tasks[task_index].done = !tasks[task_index].done;
+                toggle_task_done(task_index);
                 save_tasks();
                 printf("任务状态已更新。\n");
                 break;
@@ -254,12 +289,13 @@ static void task_action_menu(int task_index) {
                 edit_task_title(task_index);
                 break;
             case 3:
-                tasks[task_index].priority = read_priority();
+                update_task_priority(task_index, read_priority());
                 save_tasks();
                 printf("任务优先级已更新。\n");
                 break;
             case 4:
-                read_due_date(tasks[task_index].due_date);
+                read_due_date(due_date);
+                update_task_due_date(task_index, due_date);
                 save_tasks();
                 printf("截止日期已更新。\n");
                 break;
@@ -275,18 +311,6 @@ static void task_action_menu(int task_index) {
     }
 }
 
-static int index_in_list(int task_index, int valid_indices[], int valid_count) {
-    int i;
-
-    for (i = 0; i < valid_count; i++) {
-        if (valid_indices[i] == task_index) {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
 static int select_task_to_manage(int valid_indices[], int valid_count) {
     int number;
     int task_index;
@@ -296,13 +320,13 @@ static int select_task_to_manage(int valid_indices[], int valid_count) {
         return 0;
     }
 
-    if (number < 1 || number > task_count) {
+    if (number < 1 || number > get_task_count()) {
         printf("任务编号无效。\n");
         return 1;
     }
 
     task_index = number - 1;
-    if (valid_indices != NULL && !index_in_list(task_index, valid_indices, valid_count)) {
+    if (valid_indices != 0 && !is_task_index_in_list(task_index, valid_indices, valid_count)) {
         printf("该任务编号不在当前列表中。\n");
         return 1;
     }
@@ -319,22 +343,19 @@ static void view_tasks(void) {
             return;
         }
 
-        if (!select_task_to_manage(NULL, 0)) {
+        if (!select_task_to_manage(0, 0)) {
             return;
         }
     }
 }
 
-static void search_tasks(void) {
+static void search_tasks_from_input(void) {
     char keyword[MAX_TITLE];
     int i;
-    int task_index;
-    int found = 0;
-    int sorted_indices[MAX_TASKS];
     int matching_indices[MAX_TASKS];
-    int matching_count = 0;
+    int matching_count;
 
-    if (task_count == 0) {
+    if (get_task_count() == 0) {
         printf("还没有任务。\n");
         return;
     }
@@ -350,24 +371,16 @@ static void search_tasks(void) {
     }
 
 search_again:
-    found = 0;
-    matching_count = 0;
-    build_sorted_indices(sorted_indices);
+    matching_count = search_tasks(keyword, matching_indices);
 
     printf("\n搜索结果:\n");
-    for (i = 0; i < task_count; i++) {
-        task_index = sorted_indices[i];
-        if (strstr(tasks[task_index].title, keyword) != NULL) {
-            printf("%d. [%c] [%s] [%s] %s\n", task_index + 1, tasks[task_index].done ? 'x' : ' ', priority_text(tasks[task_index].priority), tasks[task_index].due_date, tasks[task_index].title);
-            matching_indices[matching_count] = task_index;
-            matching_count++;
-            found = 1;
-        }
-    }
-
-    if (!found) {
+    if (matching_count == 0) {
         printf("没有找到匹配的任务。\n");
         return;
+    }
+
+    for (i = 0; i < matching_count; i++) {
+        print_task(matching_indices[i]);
     }
 
     if (!select_task_to_manage(matching_indices, matching_count)) {
@@ -386,25 +399,29 @@ static void show_menu(void) {
     printf("6. 退出\n");
 }
 
-void run_app(void) {
+void run_cli_app(void) {
     int choice;
 
     while (1) {
         show_menu();
         choice = read_number("请选择操作: ");
+        if (input_closed) {
+            save_tasks();
+            return;
+        }
 
         printf("\n");
 
         switch (choice) {
             case 1:
-                add_task();
+                add_task_from_input();
                 wait_for_enter();
                 break;
             case 2:
                 view_tasks();
                 break;
             case 3:
-                search_tasks();
+                search_tasks_from_input();
                 break;
             case 4:
                 clear_all_tasks();
@@ -413,6 +430,8 @@ void run_app(void) {
             case 5:
                 if (save_tasks()) {
                     printf("任务已保存到 %s。\n", DATA_FILE);
+                } else {
+                    printf("无法保存任务到 %s。\n", DATA_FILE);
                 }
                 wait_for_enter();
                 break;

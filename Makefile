@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11
 TARGET = study_planner.exe
-SRC = src/main.c src/task.c src/storage.c src/ui.c
+SRC = src/main.c src/task.c src/storage.c src/cli_ui.c
 
 all: $(TARGET)
 

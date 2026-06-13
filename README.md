@@ -2,7 +2,7 @@
 
 一个使用 C 语言编写的命令行学习任务管理工具。
 
-当前版本：`v2.1`
+当前版本：`v2.2`
 
 ## 项目简介
 
@@ -57,7 +57,7 @@
 - `main.c`：程序入口
 - `task.c / task.h`：任务结构、排序、优先级和日期校验
 - `storage.c / storage.h`：任务文件保存和读取
-- `ui.c / ui.h`：菜单、输入、搜索和任务操作流程
+- `cli_ui.c / cli_ui.h`：菜单、输入、搜索和任务操作流程
 
 文件保存格式保持不变，仍然兼容已有的 `tasks.txt`。
 
@@ -78,6 +78,17 @@
 - 在“搜索任务”中进入任务操作菜单后，选择 `6. 返回` 会回到搜索结果
 - 在任务列表或搜索结果中输入 `0` 会直接返回主菜单
 - 修改、标记完成、删除等操作完成后，会重新显示最新的任务列表或搜索结果
+
+## v2.2 核心逻辑独立化
+
+`v2.2` 不增加新功能，只为以后开发桌面 GUI 整理代码边界：
+
+- `task.c / task.h`：只负责任务增删改查、搜索、筛选、排序和校验
+- `storage.c / storage.h`：只负责从 `tasks.txt` 读取任务、保存任务
+- `cli_ui.c / cli_ui.h`：只负责命令行菜单、输入、输出和调用核心逻辑
+- `main.c`：只负责程序启动、设置 Windows 控制台编码、加载任务并启动命令行界面
+
+这样以后如果要做桌面 GUI，可以复用 `task.c` 和 `storage.c`，再另外写一套 GUI 界面层。
 
 ## Windows 下如何编译
 
@@ -100,7 +111,7 @@ cd /d "D:\Program Files\codex_program\first-program"
 编译：
 
 ```bat
-cl /utf-8 src\main.c src\task.c src\storage.c src\ui.c /Fe:study_planner.exe
+cl /utf-8 src\main.c src\task.c src\storage.c src\cli_ui.c /Fe:study_planner.exe
 ```
 
 ### 方法二：在普通 CMD 中手动加载编译环境
@@ -115,7 +126,7 @@ call "D:\visual studio\VC\Auxiliary\Build\vcvars64.bat"
 
 ```bat
 cd /d "D:\Program Files\codex_program\first-program"
-cl /utf-8 src\main.c src\task.c src\storage.c src\ui.c /Fe:study_planner.exe
+cl /utf-8 src\main.c src\task.c src\storage.c src\cli_ui.c /Fe:study_planner.exe
 ```
 
 编译成功后会生成：
@@ -241,20 +252,20 @@ study-planner-c/
     task.h
     storage.c
     storage.h
-    ui.c
-    ui.h
+    cli_ui.c
+    cli_ui.h
 ```
 
 文件说明：
 
 ```text
-src/main.c      程序入口
-src/task.c      任务结构、排序和校验相关代码
-src/task.h      任务模块头文件
+src/main.c      程序入口，负责启动主流程
+src/task.c      任务增删改查、搜索、筛选、排序和校验
+src/task.h      任务核心模块头文件
 src/storage.c   任务保存和读取代码
 src/storage.h   存储模块头文件
-src/ui.c        菜单、输入和交互流程代码
-src/ui.h        UI 模块头文件
+src/cli_ui.c    命令行菜单、输入、输出和交互流程
+src/cli_ui.h    命令行界面模块头文件
 Makefile        GCC/make 构建文件
 README.md       项目说明文档
 .gitignore      Git 忽略规则

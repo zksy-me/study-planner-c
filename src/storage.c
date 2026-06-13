@@ -10,16 +10,20 @@ void load_tasks(void) {
     FILE *file = fopen(DATA_FILE, "r");
     char line[MAX_TITLE + 32];
 
-    task_count = 0;
+    clear_tasks();
 
-    if (file == NULL) {
+    if (file == 0) {
         return;
     }
 
-    while (fgets(line, sizeof(line), file) != NULL && task_count < MAX_TASKS) {
+    while (fgets(line, sizeof(line), file) != 0 && get_task_count() < MAX_TASKS) {
         char *first_separator;
         char *second_separator;
         char *third_separator;
+        int done;
+        int priority;
+        const char *due_date;
+        const char *title;
         size_t len;
 
         len = strlen(line);
@@ -28,42 +32,34 @@ void load_tasks(void) {
         }
 
         first_separator = strchr(line, '|');
-        if (first_separator == NULL) {
+        if (first_separator == 0) {
             continue;
         }
 
         *first_separator = '\0';
-        tasks[task_count].done = atoi(line);
+        done = atoi(line);
 
         second_separator = strchr(first_separator + 1, '|');
-        if (second_separator == NULL) {
-            tasks[task_count].priority = 2;
-            strcpy(tasks[task_count].due_date, "00-00");
-            strncpy(tasks[task_count].title, first_separator + 1, MAX_TITLE - 1);
+        if (second_separator == 0) {
+            priority = 2;
+            due_date = "00-00";
+            title = first_separator + 1;
         } else {
             *second_separator = '\0';
-            tasks[task_count].priority = atoi(first_separator + 1);
-            if (tasks[task_count].priority < 1 || tasks[task_count].priority > 3) {
-                tasks[task_count].priority = 2;
-            }
+            priority = atoi(first_separator + 1);
 
             third_separator = strchr(second_separator + 1, '|');
-            if (third_separator == NULL) {
-                strcpy(tasks[task_count].due_date, "00-00");
-                strncpy(tasks[task_count].title, second_separator + 1, MAX_TITLE - 1);
+            if (third_separator == 0) {
+                due_date = "00-00";
+                title = second_separator + 1;
             } else {
                 *third_separator = '\0';
-                if (is_valid_due_date(second_separator + 1)) {
-                    strcpy(tasks[task_count].due_date, second_separator + 1);
-                } else {
-                    strcpy(tasks[task_count].due_date, "00-00");
-                }
-                strncpy(tasks[task_count].title, third_separator + 1, MAX_TITLE - 1);
+                due_date = second_separator + 1;
+                title = third_separator + 1;
             }
         }
 
-        tasks[task_count].title[MAX_TITLE - 1] = '\0';
-        task_count++;
+        add_loaded_task(done, priority, due_date, title);
     }
 
     fclose(file);
@@ -73,13 +69,15 @@ int save_tasks(void) {
     FILE *file = fopen(DATA_FILE, "w");
     int i;
 
-    if (file == NULL) {
-        printf("无法保存任务到 %s。\n", DATA_FILE);
+    if (file == 0) {
         return 0;
     }
 
-    for (i = 0; i < task_count; i++) {
-        fprintf(file, "%d|%d|%s|%s\n", tasks[i].done, tasks[i].priority, tasks[i].due_date, tasks[i].title);
+    for (i = 0; i < get_task_count(); i++) {
+        const Task *task = get_task(i);
+        if (task != 0) {
+            fprintf(file, "%d|%d|%s|%s\n", task->done, task->priority, task->due_date, task->title);
+        }
     }
 
     fclose(file);

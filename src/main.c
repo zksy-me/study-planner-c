@@ -1,5 +1,5 @@
 #include "storage.h"
-#include "ui.h"
+#include "cli_ui.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -12,6 +12,6 @@ int main(void) {
 #endif
 
     load_tasks();
-    run_app();
+    run_cli_app();
     return 0;
 }
